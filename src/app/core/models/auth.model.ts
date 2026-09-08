@@ -1,3 +1,5 @@
+export * from './user.model';
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -16,6 +18,12 @@ export interface WorkGroup {
   company?: Company | null;
 }
 
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface User {
   id: string;
   firstName: string;
@@ -28,6 +36,7 @@ export interface User {
   company?: Company;
   authorizedSystemCodes: string[];
   workGroups: WorkGroup[];
+  roles?: Role[];
 }
 
 export interface AuthResponse {

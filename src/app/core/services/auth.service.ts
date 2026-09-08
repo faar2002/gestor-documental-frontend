@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, WritableSignal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { LoginRequest, AuthResponse, User } from '../models/auth.model';
@@ -9,14 +9,11 @@ import { LoginRequest, AuthResponse, User } from '../models/auth.model';
 export class AuthService {
   private apiUrl = '/api/v1/auth';
 
-  // Señal reactiva para mantener la información del usuario en memoria
-  private userSignal = signal<User | null>(this.getUserFromStorage());
+  // Señal Writable principal inicializada desde localStorage
+  public currentUser: WritableSignal<User | null> = signal<User | null>(this.getUserFromStorage());
   
   // Estado reactivo que indica si hay una sesión activa
-  public isAuthenticated = computed(() => !!this.userSignal());
-  
-  // Acceso de solo lectura a los datos del usuario actual
-  public currentUser = computed(() => this.userSignal());
+  public isAuthenticated = computed(() => !!this.currentUser());
 
   constructor(private http: HttpClient) {}
 
@@ -24,32 +21,39 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((res) => {
         if (res.user) {
-          // Persistir el usuario en localStorage
-          localStorage.setItem('user', JSON.stringify(res.user));
-          
-          // Si tu respuesta incluye un token explícito:
+          // Guardar usuario y token
+          this.setCurrentUser(res.user);
+
           if (res.token) {
             localStorage.setItem('token', res.token);
           }
-          
-          // Actualizar el estado global
-          this.userSignal.set(res.user);
         }
       })
     );
   }
 
+  // Método centralizado para actualizar el usuario en memoria y en localStorage
+  setCurrentUser(user: User): void {
+    localStorage.setItem('user', JSON.stringify(user));
+    this.currentUser.set(user);
+  }
+
   logout(): void {
     localStorage.clear();
-    this.userSignal.set(null);
+    this.currentUser.set(null);
+    window.location.href = '/login';
   }
 
   getUser(): User | null {
-    return this.userSignal();
+    return this.currentUser();
   }
 
   private getUserFromStorage(): User | null {
     const userJson = localStorage.getItem('user');
-    return userJson ? JSON.parse(userJson) : null;
+    try {
+      return userJson ? JSON.parse(userJson) : null;
+    } catch (e) {
+      return null;
+    }
   }
 }
