@@ -1,9 +1,9 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { LoginRequest } from '../../../core/models/auth.model';
+import { Role, User } from '../../../core/models/auth.model';
 
 @Component({
   selector: 'app-login',
@@ -15,41 +15,67 @@ import { LoginRequest } from '../../../core/models/auth.model';
 export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef); // Inyectamos el detector de cambios
 
-  credentials: LoginRequest = {
-    email: '',
-    password: ''
-  };
+  credentials = { email: '', password: '' };
+  isLoading = signal<boolean>(false);
+  errorMessage = signal<string>('');
 
-  errorMessage: string = '';
-  successMessage: string = ''; // Mensaje de éxito
+  // Estados para la selección de rol
+  showRoleSelection = signal<boolean>(false);
+  availableRoles = signal<Role[]>([]);
+  selectedRoleId: string = '';
+  tempUser: User | null = null;
 
-  onSubmit(): void {
-    if (this.credentials.email && this.credentials.password) {
-      this.errorMessage = '';
-      this.successMessage = '';
+  onLogin(): void {
+    if (!this.credentials.email || !this.credentials.password) return;
 
-      this.authService.login(this.credentials).subscribe({
-        next: (response) => {
-          // Asignamos el mensaje "Inicio de sesión exitoso" del backend
-          this.successMessage = response.message || 'Inicio de sesión exitoso';
-          this.cdr.detectChanges();
+    this.isLoading.set(true);
+    this.errorMessage.set('');
 
-          // Esperamos 1.5 segundos para que el usuario lo vea antes de redirigir
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1500);
-        },
-        error: (err) => {
-          if (err.error && err.error.message) {
-            this.errorMessage = err.error.message;
-          } else {
-            this.errorMessage = 'Ocurrió un error al intentar iniciar sesión.';
-          }
-          this.cdr.detectChanges();
+    this.authService.login(this.credentials).subscribe({
+      next: (res) => {
+        this.isLoading.set(false);
+        const roles = res.user?.roles || [];
+
+        if (roles.length > 1) {
+          // Si tiene más de 1 rol, mostramos el paso de selección
+          this.tempUser = res.user;
+          this.availableRoles.set(roles);
+          this.selectedRoleId = roles[0].id; // Asigna el primer rol por defecto
+          this.showRoleSelection.set(true);
+        } else {
+          // Si solo tiene 1 rol o ninguno, navegamos directo
+          this.router.navigate(['/documents']);
+        }
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(err.error?.message || 'Credenciales inválidas.');
+      }
+    });
+  }
+
+  onConfirmRole(): void {
+    if (!this.selectedRoleId) {
+      this.errorMessage.set('Por favor, selecciona un rol de la lista.');
+      return;
+    }
+
+    // Buscamos el objeto del rol seleccionado
+    const chosenRole = this.availableRoles().find(r => r.id === this.selectedRoleId);
+
+    if (chosenRole) {
+      // 1. Asignamos el rol activo en el AuthService y localStorage
+      this.authService.setActiveRole(chosenRole);
+      
+      // 2. Redirigimos a la pantalla principal
+      this.router.navigate(['/documents']).then((navigated) => {
+        if (!navigated) {
+          console.error('No se pudo redirigir a /documents');
         }
       });
+    } else {
+      this.errorMessage.set('El rol seleccionado no es válido.');
     }
   }
 }

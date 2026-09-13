@@ -26,6 +26,7 @@ export interface User {
   authorizedSystemCodes?: string[];
   workGroups?: WorkGroup[];
   roles?: Role[];
+  activeRole?: Role;
 }
 
 export interface UserUpdateRequest {
