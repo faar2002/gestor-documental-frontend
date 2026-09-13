@@ -10,6 +10,15 @@ export class DocumentService {
   private http = inject(HttpClient);
   private apiUrl = '/api/v1/documents';
 
+  // Endpoint de Administrador paginado
+  getAllDocuments(page: number = 0, size: number = 10): Observable<DocumentSearchResponse> {
+    const params = new HttpParams()
+      .set('page', page)
+      .set('size', size);
+      
+    return this.http.get<DocumentSearchResponse>(this.apiUrl, { params });
+  }
+  
   searchDocuments(
     email: string,
     page: number = 0,

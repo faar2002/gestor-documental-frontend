@@ -1,4 +1,5 @@
 export * from './user.model';
+export * from './company.model';
 
 export interface LoginRequest {
   email: string;
@@ -37,6 +38,7 @@ export interface User {
   authorizedSystemCodes: string[];
   workGroups: WorkGroup[];
   roles?: Role[];
+  activeRole?: Role;
 }
 
 export interface AuthResponse {

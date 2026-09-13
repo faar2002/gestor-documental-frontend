@@ -49,41 +49,98 @@
           </h5>
           <button type="button" class="btn-close btn-close-white" (click)="closeProfileModal()"></button>
         </div>
+        
         <div class="modal-body">
+          <!-- Cabecera de Identificación -->
           <div class="text-center mb-4">
             <i class="bi bi-person-circle text-secondary" style="font-size: 3.5rem;"></i>
             <h4 class="mt-2 mb-1">{{ currentUser()?.fullName }}</h4>
-            <div class="d-flex justify-content-center gap-2 mb-2">
-              @for (role of currentUser()?.roles || []; track role.id) {
-                <span class="badge bg-primary text-capitalize">{{ role.name }}</span>
-              } @empty {
-                <span class="badge bg-secondary">Sin Rol</span>
-              }
+            
+            <!-- Rol Activo Actualmente -->
+            <div class="mb-2">
+              <span class="badge bg-success text-uppercase">
+                <i class="bi bi-shield-check me-1"></i> Rol Activo: {{ currentUser()?.activeRole?.name || 'Sin Rol Activo' }}
+              </span>
             </div>
+
+            <!-- Estado de la Cuenta -->
+            <span class="badge" [class.bg-info]="currentUser()?.enabled" [class.bg-danger]="!currentUser()?.enabled">
+              {{ currentUser()?.enabled ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
+            </span>
           </div>
 
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="card h-100 bg-light border-0">
+          <!-- Fila 1: Información General -->
+          <div class="row g-3 mb-3">
+            <div class="col-12">
+              <div class="card bg-light border-0">
                 <div class="card-body">
-                  <h6 class="card-title text-muted border-bottom pb-2">Información Personal</h6>
-                  <p class="mb-1"><strong>Correo:</strong> {{ currentUser()?.email }}</p>
-                  <p class="mb-0"><strong>Compañía:</strong> {{ currentUser()?.company?.name || 'N/A' }}</p>
+                  <h6 class="card-title text-muted border-bottom pb-2">Información General</h6>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p class="mb-1"><strong>Correo:</strong> {{ currentUser()?.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                      <p class="mb-1"><strong>Compañía:</strong> {{ currentUser()?.company?.name || 'N/A' }}</p>
+                      @if (currentUser()?.company?.taxId) {
+                        <small class="text-muted d-block">RUT/Tax ID: {{ currentUser()?.company?.taxId }}</small>
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Fila 2: Roles Asignados y Grupos de Trabajo -->
+          <div class="row g-3">
+            <!-- Roles Asignados (Solo Lectura) -->
             <div class="col-md-6">
               <div class="card h-100 bg-light border-0">
                 <div class="card-body">
-                  <h6 class="card-title text-muted border-bottom pb-2">Grupos de Trabajo</h6>
-                  <ul class="list-unstyled mb-0">
-                    @for (group of currentUser()?.workGroups || []; track group.id) {
-                      <li class="mb-2">
-                        <i class="bi bi-people-fill text-primary me-1"></i>
-                        <strong>{{ group.name }}</strong>
+                  <h6 class="card-title text-muted border-bottom pb-2">
+                    <i class="bi bi-shield-lock me-1"></i> Roles Asignados
+                  </h6>
+                  <ul class="list-group list-group-flush bg-transparent">
+                    @for (role of currentUser()?.roles || []; track role.id) {
+                      <li class="list-group-item bg-transparent px-0 py-2 border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div>
+                            <strong class="text-capitalize text-dark">{{ role.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ role.description || 'Sin descripción' }}</small>
+                          </div>
+                          @if (role.id === currentUser()?.activeRole?.id) {
+                            <span class="badge bg-primary">En Uso</span>
+                          }
+                        </div>
                       </li>
                     } @empty {
-                      <li class="text-muted small">No pertenece a ningún grupo.</li>
+                      <li class="list-group-item bg-transparent text-muted small px-0 border-0">
+                        No hay roles asignados.
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grupos de Trabajo (Solo Lectura) -->
+            <div class="col-md-6">
+              <div class="card h-100 bg-light border-0">
+                <div class="card-body">
+                  <h6 class="card-title text-muted border-bottom pb-2">
+                    <i class="bi bi-people-fill me-1"></i> Grupos de Trabajo
+                  </h6>
+                  <ul class="list-group list-group-flush bg-transparent">
+                    @for (group of currentUser()?.workGroups || []; track group.id) {
+                      <li class="list-group-item bg-transparent px-0 py-2 border-0">
+                        <strong class="text-primary">{{ group.name }}</strong>
+                        <small class="text-muted d-block">{{ group.description || 'Sin descripción' }}</small>
+                      </li>
+                    } @empty {
+                      <li class="list-group-item bg-transparent text-muted small px-0 border-0">
+                        No pertenece a ningún grupo de trabajo.
+                      </li>
                     }
                   </ul>
                 </div>
@@ -91,9 +148,10 @@
             </div>
           </div>
         </div>
+
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-outline-primary" (click)="openEditModal()">
-            <i class="bi bi-pencil-square me-1"></i> Editar Datos
+            <i class="bi bi-pencil-square me-1"></i> Editar Información Personal
           </button>
           <button type="button" class="btn btn-secondary" (click)="closeProfileModal()">Cerrar</button>
         </div>
@@ -187,38 +245,48 @@
 
 <div class="container">
   <!-- Tarjeta para subir archivos -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white">
-      <h5 class="card-title m-0 text-primary">
-        <i class="bi bi-cloud-upload"></i> Cargar Nuevo Documento
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row g-3 align-items-center">
-        <div class="col-md-9">
-          <input 
-            type="file" 
-            class="form-control" 
-            (change)="onFileSelected($event)" 
-            [disabled]="isLoading()" />
-        </div>
-        <div class="col-md-3">
-          <button 
-            class="btn btn-primary w-100" 
-            [disabled]="!selectedFile || isLoading()" 
-            (click)="onUpload()">
-            @if (isLoading()) {
-              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-              Subiendo...
-            } @else {
-              <i class="bi bi-upload me-1"></i> Subir Archivo
-            }
-          </button>
+  @if (isAdmin()) {
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white">
+        <h5 class="card-title m-0 text-primary">
+          <i class="bi bi-cloud-upload"></i> Cargar Nuevo Documento
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-9">
+            <input 
+              type="file" 
+              class="form-control" 
+              (change)="onFileSelected($event)" 
+              [disabled]="isLoading()" />
+          </div>
+          <div class="col-md-3">
+            <button 
+              class="btn btn-primary w-100" 
+              [disabled]="!selectedFile || isLoading()" 
+              (click)="onUpload()">
+              @if (isLoading()) {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                Subiendo...
+              } @else {
+                <i class="bi bi-upload me-1"></i> Subir Archivo
+              }
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  }
+@if (currentUser()?.activeRole?.name === 'administrador') {
+  <button class="btn btn-warning">
+    <i class="bi bi-gear-fill"></i> Configuración de Sistema
+  </button>
+}
 
+@if (currentUser()?.activeRole?.name === 'trabajador') {
+  <span class="badge bg-info">Vista de Empleado</span>
+}
   <!-- Alerta de Errores -->
   @if (errorMessage()) {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -231,7 +299,8 @@
   <div class="card shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
       <h5 class="card-title m-0">
-        <i class="bi bi-files"></i> Mis Documentos
+        <i class="bi bi-files me-2"></i>
+        {{ isAdmin() ? 'Todos los Documentos del Sistema' : 'Mis Documentos' }}
       </h5>
       <button class="btn btn-sm btn-outline-primary" (click)="loadDocuments()">
         <i class="bi bi-arrow-clockwise"></i> Recargar
@@ -250,6 +319,11 @@
             <thead class="table-light">
               <tr>
                 <th>Nombre del Archivo</th>
+                @if (isAdmin()) {
+                  <th>Propietario / Correo</th>
+                }@else {
+                  <th>Subido Por (Correo)</th>
+                }
                 <th>Tipo</th>
                 <th>Tamaño</th>
                 <th>Estado</th>
@@ -262,35 +336,55 @@
                 <tr>
                   <td>
                     <div class="fw-bold text-truncate" style="max-width: 250px;">
-                      <i class="bi bi-file-earmark-text text-secondary me-1"></i> {{ doc.originalName }}
+                      <i class="bi bi-file-earmark-text text-primary me-1"></i> {{ doc.fileName }}
                     </div>
                   </td>
-                  <td><span class="text-muted small">{{ doc.contentType }}</span></td>
-                  <td>{{ formatBytes(doc.size) }}</td>
+                  @if (isAdmin()) {
+                    <td>
+                      <span class="badge bg-light text-dark border">
+                        <i class="bi bi-envelope me-1"></i> {{ doc.userEmaildb }}
+                      </span>
+                    </td>
+                  }@else {
+                    <td>
+                      <span class="badge bg-light text-dark border">
+                        <i class="bi bi-envelope me-1"></i> {{ doc.uploaderEmail }}
+                      </span>
+                    </td>
+                  }
+                  <td><span class="text-muted small">{{ doc.fileType }}</span></td>
+                  <td>{{ formatBytes(doc.fileSize) }}</td>
                   <td>
                     <span 
                       class="badge" 
                       [class.bg-success]="doc.status === 'APROBADO'"
-                      [class.bg-warning]="doc.status === 'PENDIENTE'"
+                      [class.bg-warning]="doc.status === 'PENDIENTE' || !doc.status"
                       [class.bg-danger]="doc.status === 'RECHAZADO'">
-                      {{ doc.status }}
+                      {{ doc.status || 'PROCESADO' }}
                     </span>
                   </td>
-                  <td><small class="text-muted">{{ doc.uploadedAt | date:'medium' }}</small></td>
+                  <td><small class="text-muted">{{ doc.uploadDate | date:'medium' }}</small></td>
                   <td class="text-end">
                     <div class="btn-group btn-group-sm">
+                      @if (isPreviewable(doc.fileType)) {
+                        <button class="btn btn-outline-info" (click)="onPreview(doc)" title="Previsualizar">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      }
                       <button class="btn btn-outline-primary" (click)="onDownload(doc)" title="Descargar">
                         <i class="bi bi-download"></i>
                       </button>
-                      <button class="btn btn-outline-danger" (click)="onDelete(doc.id)" title="Eliminar">
-                        <i class="bi bi-trash"></i>
-                      </button>
+                      @if (isAdmin()) {
+                        <button class="btn btn-outline-danger" (click)="onDelete(doc.id)" title="Eliminar">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      }
                     </div>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="text-center py-4 text-muted">
+                  <td [attr.colspan]="isAdmin() ? 7 : 6" class="text-center py-4 text-muted">
                     <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                     No se encontraron documentos asociados a tu cuenta.
                   </td>
@@ -299,7 +393,113 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Contenedor Unificado de Paginación y Controles -->
+        <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center py-3 border-top">
+          <!-- Selector de Registros por Página -->
+          <div class="d-flex align-items-center gap-2">
+            <label for="pageSizeSelect" class="form-label mb-0 small text-muted fw-semibold">
+              Mostrar:
+            </label>
+            <select 
+              id="pageSizeSelect" 
+              class="form-select form-select-sm" 
+              style="width: auto;"
+              [value]="pageSize()" 
+              (change)="onPageSizeChange($event)">
+              <option [value]="5">5 por pág.</option>
+              <option [value]="10">10 por pág.</option>
+              <option [value]="20">20 por pág.</option>
+              <option [value]="50">50 por pág.</option>
+            </select>
+            
+            <small class="text-muted ms-2">
+              (Total: <strong>{{ totalElements() }}</strong> registros)
+            </small>
+          </div>
+
+          <!-- Control de Páginas -->
+          @if (totalPages() > 1) {
+            <nav aria-label="Navegación de documentos">
+              <ul class="pagination pagination-sm m-0">
+                <li class="page-item" [class.disabled]="currentPage() === 0">
+                  <button class="page-link" (click)="goToPage(currentPage() - 1)">
+                    Anterior
+                  </button>
+                </li>
+
+                @for (p of [].constructor(totalPages()); track $index) {
+                  <li class="page-item" [class.active]="$index === currentPage()">
+                    <button class="page-link" (click)="goToPage($index)">
+                      {{ $index + 1 }}
+                    </button>
+                  </li>
+                }
+
+                <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+                  <button class="page-link" (click)="goToPage(currentPage() + 1)">
+                    Siguiente
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          }
+        </div>
       }
     </div>
   </div>
+  @if (showPreviewModal()) {
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);">
+      <div class="modal-dialog modal-dialog-centered modal-xl" style="height: 90vh;">
+        <div class="modal-content h-100 shadow-lg">
+          
+          <!-- Cabecera -->
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title text-truncate" style="max-width: 80%;">
+              <i class="bi bi-file-earmark-pdf me-2"></i> {{ previewDoc()?.fileName }}
+            </h5>
+            <button type="button" class="btn-close btn-close-white" (click)="closePreviewModal()"></button>
+          </div>
+
+          <!-- Cuerpo del Modal -->
+          <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-light" style="overflow: hidden;">
+            @if (previewLoading()) {
+              <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted fw-semibold">Generando vista previa...</p>
+              </div>
+            } @else if (previewUrl()) {
+              
+              <!-- Visor de PDF -->
+              @if (previewDoc()?.fileType?.includes('pdf')) {
+                <object [data]="previewUrl()!" type="application/pdf" width="100%" height="100%">
+                  <p class="p-4 text-center">
+                    Tu navegador no soporta la vista previa integrada de PDFs. 
+                    <a [href]="previewUrl()!" target="_blank" class="btn btn-sm btn-primary mt-2">Abrir en nueva pestaña</a>
+                  </p>
+                </object>
+              } 
+              <!-- Visor de Imágenes -->
+              @else if (previewDoc()?.fileType?.includes('image')) {
+                <div class="p-3 text-center h-100 w-100 d-flex justify-content-center align-items-center">
+                  <img [src]="previewUrl()!" class="img-fluid rounded shadow-sm" style="max-height: 100%; object-fit: contain;" alt="Vista Previa" />
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Pie de Modal -->
+          <div class="modal-footer bg-light justify-content-between">
+            <span class="small text-muted">
+              Tipo: <strong>{{ previewDoc()?.fileType }}</strong> | 
+              Subido por: <strong>{{ previewDoc()?.userEmaildb }}</strong>
+            </span>
+            <button type="button" class="btn btn-secondary" (click)="closePreviewModal()">Cerrar</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  }
+
 </div>
